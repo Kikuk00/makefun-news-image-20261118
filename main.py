@@ -5,10 +5,19 @@ it to $MAKEFUN_OUTPUT_DIR/entry.png (default /output), byte for byte, so
 both runs of the program write identical output.
 """
 
+import hashlib
 import os
 import shutil
 import sys
 from pathlib import Path
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def main() -> int:
@@ -20,8 +29,8 @@ def main() -> int:
     dst = Path(out_dir) / "entry.png"
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, dst)
-    if dst.stat().st_size != src.stat().st_size:
-        print("copied file size mismatch", file=sys.stderr)
+    if _sha256(dst) != _sha256(src):
+        print("copied file content mismatch", file=sys.stderr)
         return 1
     return 0
 
